@@ -27,14 +27,15 @@ func main() {
 	e.Logger.Fatal(e.Start(":1323"))
 
 	// Handler
-	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
-
 	db := starter.NewFn("database", dbFn)
 	httpc := starter.NewFn("http", httpFn)
 
-	httpc.DependsOn(db)
+	r := starter.NewRunner()
 
-	errC := starter.Run(ctx, db, httpc)
+	r.Order(db, httpc)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	r.Start(ctx)
 
 	// Routes
 	e.GET("/stop/:id", func(c echo.Context) error {
@@ -61,9 +62,9 @@ func main() {
 	}
 
 	select {
-	case <-errC:
-		cancel()
-		log.Println("done")
+	// case <-errC:
+	// 	cancel()
+	// 	log.Println("done")
 	case <-time.After(6 * time.Second):
 		log.Println("timeout, exiting with running services")
 	case <-interruptChannel:
@@ -71,10 +72,10 @@ func main() {
 	}
 }
 
-func dbFn(ctx context.Context) error {
+func dbFn(ctx context.Context) <-chan error {
 	return nil
 }
 
-func httpFn(ctx context.Context) error {
+func httpFn(ctx context.Context) <-chan error {
 	return nil
 }

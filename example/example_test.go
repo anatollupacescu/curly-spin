@@ -8,30 +8,45 @@ import (
 	starter "github.com/anatollupacescu/curly-spin"
 )
 
-func dbFn(ctx context.Context) error {
-	fmt.Println("start db")
-	return nil
+func dbFn(ctx context.Context) <-chan error {
+	out := make(chan error)
+	go func() {
+		fmt.Println("start db")
+		time.Sleep(time.Second)
+		close(out)
+	}()
+	return out
 }
 
-func httpFn(ctx context.Context) error {
-	fmt.Println("start http")
-	return nil
+func httpFn(ctx context.Context) <-chan error {
+	out := make(chan error)
+	go func() {
+		fmt.Println("start http")
+		close(out)
+	}()
+	return out
 }
 
 func ExampleContainer() {
+	db := starter.NewFn("database", dbFn)
+	http := starter.NewFn("http", httpFn)
+
+	r := starter.NewRunner()
+
+	r.Register(db)
+	r.Register(http)
+
+	r.Order(db, http)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	db := starter.NewFn("database", dbFn, func() error { fmt.Println("stop db"); return nil })
-	http := starter.NewFn("http", httpFn, func() error { fmt.Println("stop http"); return nil })
-
-	http.DependsOn(db)
-
-	<-starter.Run(ctx, db, http)
+	r.Start(ctx)
 
 	// Output:
 	// start db
 	// start http
-	// stop http
-	// stop db
 }
+
+// stop http
+// stop db
