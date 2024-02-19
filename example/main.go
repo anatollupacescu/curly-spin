@@ -27,7 +27,6 @@ func main() {
 	e.Logger.Fatal(e.Start(":1323"))
 
 	// Handler
-
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 
 	db := starter.NewFn("database", dbFn)
