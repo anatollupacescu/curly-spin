@@ -43,7 +43,10 @@ func (s *Scheduler) schedule(ctx context.Context, uu ...*unit) {
 			<-s.s //start
 
 			if len(u.waitFor) > 0 {
-				newHook(u.waitFor...).wait()
+				select {
+				case <-newHook(u.waitFor...).wait():
+				case <-ctx.Done():
+				}
 			}
 
 			<-u.target.Run(ctx)

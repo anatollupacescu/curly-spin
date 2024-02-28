@@ -79,7 +79,10 @@ func (r *runner) Start(ctx context.Context) {
 		r.scheduler.start()
 	}()
 
-	newHook(pb...).wait()
+	select {
+	case <-newHook(pb...).wait():
+	case <-ctx.Done():
+	}
 }
 
 func free(units map[string]*unit) (out []*unit) {

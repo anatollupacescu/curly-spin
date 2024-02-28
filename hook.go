@@ -1,13 +1,7 @@
 package starter
 
-import (
-	"sync"
-)
-
 type hook struct {
-	mu       sync.Mutex
-	isClosed bool
-	c        chan struct{}
+	c chan struct{}
 }
 
 func newHook(uu ...*unit) *hook {
@@ -39,12 +33,6 @@ func newHook(uu ...*unit) *hook {
 	return h
 }
 
-func (h *hook) wait() {
-	h.mu.Lock()
-	if h.isClosed {
-		return
-	}
-	h.mu.Unlock()
-
-	<-h.c
+func (h *hook) wait() <-chan struct{} {
+	return h.c
 }

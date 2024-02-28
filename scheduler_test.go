@@ -36,7 +36,7 @@ func TestSchedulerTwoDepsHook(t *testing.T) {
 
 	go func() {
 		close(ss)
-		newHook(v).wait()
+		<-newHook(v).wait()
 		close(bl)
 	}()
 
