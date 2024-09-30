@@ -12,43 +12,45 @@ type C struct {
 	fn      func(context.Context) error
 	done    chan struct{}
 	timeout time.Duration
-	status  int32
+	status  atomic.Int32
 }
 
 const (
 	Pending = iota
+	starting
 	Started
 	Failed
 	Cancelled
 )
 
 func (c *C) Start(ctx context.Context) {
+	if !c.status.CompareAndSwap(Pending, starting) {
+		return
+	}
+
 	defer close(c.done)
+
 	ct := time.After(c.timeout)
-	for _, r := range c.waitOn {
+
+	for _, dep := range c.waitOn {
 		select {
-		case <-r.done:
-			if atomic.LoadInt32(&r.status) == Started {
+		case <-dep.done:
+			if dep.status.Load() == Started {
 				continue
 			}
 		case <-ctx.Done():
 		case <-ct:
 		}
-		c.setStatus(Cancelled)
+		c.status.Store(Cancelled)
 		return
 	}
+
 	if err := c.fn(ctx); err != nil {
-		c.setStatus(Failed)
+		c.status.Store(Failed)
 		return
 	}
 
-	c.setStatus(Started)
-}
-
-func (c *C) setStatus(in int32) {
-	if !atomic.CompareAndSwapInt32(&c.status, Pending, in) {
-		panic("unexpected state")
-	}
+	c.status.Store(Started)
 }
 
 func New(fn func(context.Context) error) *C {
@@ -68,9 +70,9 @@ func (c *C) WaitForDur(in time.Duration) {
 }
 
 func (c *C) Status() int32 {
-	return atomic.LoadInt32(&c.status)
+	return c.status.Load()
 }
 
-func (c *C) Done() chan struct{} {
+func (c *C) Done() <-chan struct{} {
 	return c.done
 }

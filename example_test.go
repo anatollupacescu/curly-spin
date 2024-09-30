@@ -29,11 +29,15 @@ func ExampleStarter() {
 	// WEB should wait for its dependencies
 	swb.WaitOn(sdb, sft)
 
-	for _, i := range []*C{sdb, sft, swb} {
+	for _, i := range []*C{swb, sdb, sft, swb} {
 		go i.Start(context.Background())
 	}
 
 	<-swb.Done()
+
+	if len(calls) != 3 {
+		panic("expected calls: 3")
+	}
 
 	fmt.Println(calls[2])
 	// Output: WEB

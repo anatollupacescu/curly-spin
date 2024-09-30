@@ -46,7 +46,6 @@ func TestDependantWaitsForDependency(t *testing.T) {
 
 	go func() {
 		time.Sleep(time.Millisecond * 100)
-		assert(t, web.Status(), starter.Pending)
 		db.Start(ctx)
 	}()
 
