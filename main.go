@@ -34,14 +34,21 @@ func (c *C) Start(ctx context.Context) {
 		case <-ctx.Done():
 		case <-ct:
 		}
-		c.status = Cancelled
+		c.setStatus(Cancelled)
 		return
 	}
 	if err := c.fn(ctx); err != nil {
-		c.status = Failed
+		c.setStatus(Failed)
 		return
 	}
-	c.status = Started
+
+	c.setStatus(Started)
+}
+
+func (c *C) setStatus(in int32) {
+	if !atomic.CompareAndSwapInt32(&c.status, Pending, in) {
+		panic("unexpected state")
+	}
 }
 
 func New(fn func(context.Context) error) *C {
@@ -62,4 +69,8 @@ func (c *C) WaitForDur(in time.Duration) {
 
 func (c *C) Status() int32 {
 	return atomic.LoadInt32(&c.status)
+}
+
+func (c *C) Done() chan struct{} {
+	return c.done
 }
